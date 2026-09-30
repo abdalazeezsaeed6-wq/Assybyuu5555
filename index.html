@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المحاسب السحابي</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .card-custom { width: 100%; max-width: 420px; border: none; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); background: #ffffff; padding: 25px; }
+    .brand-title { font-weight: bold; color: #0d6efd; text-align: center; margin-bottom: 20px; }
+    .hidden { display: none !important; }
+
+    .sidebar { width: 250px; background: #1e293b; min-height: 100vh; color: #fff; position: fixed; right: 0; top: 0; }
+    .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; font-weight: 500; border-radius: 8px; margin: 4px 8px; }
+    .sidebar a:hover, .sidebar a.active { background: #334155; color: #fff; }
+    .main-content { margin-right: 250px; padding: 25px; }
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; position: relative; min-height: auto; }
+      .main-content { margin-right: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- شاشة الدخول والتسجيل -->
+  <div id="authSection" class="auth-container">
+    <div class="card-custom">
+      <h3 class="brand-title"><i class="fa-solid fa-calculator"></i> المحاسب السحابي</h3>
+
+      <!-- 1. إدخال البيانات -->
+      <div id="registerStep">
+        <h6 class="text-center text-muted mb-4">الدخول للنظام</h6>
+        <div id="regAlert" class="alert alert-danger hidden"></div>
+        <div class="mb-3">
+          <label class="form-label">الاسم الكامل</label>
+          <input type="text" id="fullName" class="form-control" placeholder="أدخل اسمك" value="عبدالعزيز خندور">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">رقم الجوال</label>
+          <input type="tel" id="phone" class="form-control" placeholder="773191473" value="773191473">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">الوظيفة / الدور</label>
+          <select id="role" class="form-select">
+            <option value="مالك (صلاحيات كاملة)">مالك (صلاحيات كاملة)</option>
+            <option value="محاسب">محاسب</option>
+            <option value="موظف مبيعات">موظف مبيعات</option>
+          </select>
+        </div>
+        <button id="btnReg" onclick="handleRequestOTP()" class="btn btn-primary w-100 mb-3 fw-bold">إرسال رمز التحقق للتلجرام</button>
+      </div>
+
+      <!-- 2. تأكيد رمز OTP -->
+      <div id="otpStep" class="hidden">
+        <h5 class="text-center mb-3">🔐 تأكيد رمز التحقق</h5>
+        <p class="text-center text-muted small">تم إرسال رمز التحقق إلى بوت التليجرام الخاص بك</p>
+        <div id="otpAlert" class="alert alert-danger hidden"></div>
+        <div class="mb-3">
+          <input type="text" id="otpCode" class="form-control text-center fs-4" placeholder="1 2 3 4 5 6" maxlength="6">
+        </div>
+        <button id="btnOtp" onclick="handleVerifyOTP()" class="btn btn-success w-100 fw-bold">تأكيد ودخول لوحة التحكم</button>
+        <button onclick="backToReg()" class="btn btn-link w-100 mt-2 text-muted text-decoration-none">تعديل البيانات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- لوحة التحكم بالنظام المحاسبي -->
+  <div id="dashboardSection" class="hidden">
+    <div class="sidebar">
+      <div class="p-3 text-center border-bottom border-secondary">
+        <h5 class="m-0 fw-bold"><i class="fa-solid fa-chart-pie"></i> المحاسب السحابي</h5>
+      </div>
+      <div class="mt-3">
+        <a href="#" id="nav-dash" class="active" onclick="switchTab('dash')"><i class="fa-solid fa-house me-2"></i> الرئيسة</a>
+        <a href="#" id="nav-accounts" onclick="switchTab('accounts')"><i class="fa-solid fa-sitemap me-2"></i> دليل الحسابات</a>
+        <a href="#" id="nav-vouchers" onclick="switchTab('vouchers')"><i class="fa-solid fa-receipt me-2"></i> سندات القبض والصرف</a>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h4 class="fw-bold" id="pageTitle">الرئيسة</h4>
+        <div>
+          <span id="userNameDisplay" class="badge bg-primary fs-6 me-2"></span>
+          <button onclick="logout()" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+        </div>
+      </div>
+
+      <!-- 1. الشاشة الرئيسية -->
+      <div id="view-dash">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card p-3 border-0 shadow-sm bg-white text-center">
+              <i class="fa-solid fa-wallet fs-1 text-primary mb-2"></i>
+              <span class="text-muted">إجمالي المبيعات</span>
+              <h3 class="fw-bold text-success mt-1" id="dashSales">0.00</h3>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-3 border-0 shadow-sm bg-white text-center">
+              <i class="fa-solid fa-file-invoice fs-1 text-warning mb-2"></i>
+              <span class="text-muted">إجمالي الفواتير</span>
+              <h3 class="fw-bold mt-1" id="dashInvCount">0</h3>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-3 border-0 shadow-sm bg-white text-center">
+              <i class="fa-solid fa-list-check fs-1 text-secondary mb-2"></i>
+              <span class="text-muted">إجمالي السندات والقيود</span>
+              <h3 class="fw-bold mt-1" id="dashTxCount">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. دليل الحسابات -->
+      <div id="view-accounts" class="hidden">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-0">
+              <h6 class="fw-bold mb-3">إضافة حساب جديد</h6>
+              <div class="mb-2"><label>رمز الحساب</label><input type="text" id="accCode" class="form-control" placeholder="101"></div>
+              <div class="mb-2"><label>اسم الحساب</label><input type="text" id="accName" class="form-control" placeholder="الصندوق الرئيسي"></div>
+              <div class="mb-2">
+                <label>نوع الحساب</label>
+                <select id="accType" class="form-select">
+                  <option value="أصول">أصول</option>
+                  <option value="خصوم">خصوم</option>
+                  <option value="إيرادات">إيرادات</option>
+                  <option value="مصروفات">مصروفات</option>
+                </select>
+              </div>
+              <button onclick="saveAccount()" class="btn btn-primary w-100 mt-2">حفظ الحساب</button>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="card p-3 shadow-sm border-0">
+              <h6 class="fw-bold mb-3">شجرة / دليل الحسابات</h6>
+              <table class="table table-hover">
+                <thead>
+                  <tr><th>الرمز</th><th>اسم الحساب</th><th>النوع</th><th>الرصيد</th></tr>
+                </thead>
+                <tbody id="accountsTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. سندات القبض والصرف -->
+      <div id="view-vouchers" class="hidden">
+        <div class="card p-4 shadow-sm border-0" style="max-width: 600px;">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-receipt"></i> تحرير سند</h5>
+          <div class="mb-3">
+            <label class="form-label">نوع السند</label>
+            <select id="vType" class="form-select">
+              <option value="قبض">سند قبض (استلام أموال)</option>
+              <option value="صرف">سند صرف (دفع أموال)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الحساب</label>
+            <input type="text" id="vAccount" class="form-control" placeholder="مثال: الصندوق، الصراف، العميل أ">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">المبلغ</label>
+            <input type="number" id="vAmount" class="form-control" placeholder="0.00">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">البيان / الوصف</label>
+            <textarea id="vDesc" class="form-control" rows="2" placeholder="السبب والتفاصيل..."></textarea>
+          </div>
+          <button onclick="saveVoucher()" class="btn btn-success fw-bold w-100">حفظ وإرسال الإشعار</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // رابط الـ API المباشر الخاص بك
+    const API_URL = "https://script.google.com/macros/s/AKfycbw4U14_jRBGAiT9w4TutRzci1-Cb4N0dENfo2jZT74RaulrsmYARqeSxKFoKggxqqYyYw/exec";
+
+    let currentUser = null;
+    let tempPhone = '';
+
+    // دالة طلب JSONP لتجاوز حظر CORS نهائياً
+    function callAPI(params, callback) {
+      const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        callback(data);
+      };
+
+      const queryString = Object.keys(params)
+        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+        .join('&');
+
+      const script = document.createElement('script');
+      script.src = `${API_URL}?${queryString}&callback=${callbackName}`;
+      script.onerror = function() {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        callback({ success: false, message: 'فشل الاتصال بالسيرفر. يرجى التحقق من نشر Apps Script.' });
+      };
+      document.body.appendChild(script);
+    }
+
+    function handleRequestOTP() {
+      const fullName = document.getElementById('fullName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const role = document.getElementById('role').value;
+      const alertBox = document.getElementById('regAlert');
+      const btn = document.getElementById('btnReg');
+
+      if (!fullName || !phone) {
+        alertBox.textContent = 'يرجى إدخال الاسم ورقم الجوال.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      tempPhone = phone;
+      btn.disabled = true;
+      btn.textContent = 'جاري الإرسال...';
+      alertBox.classList.add('hidden');
+
+      callAPI({ action: 'requestOTP', fullName: fullName, phone: phone, role: role }, function(res) {
+        btn.disabled = false;
+        btn.textContent = 'إرسال رمز التحقق للتلجرام';
+        if (res.success) {
+          document.getElementById('registerStep').classList.add('hidden');
+          document.getElementById('otpStep').classList.remove('hidden');
+        } else {
+          alertBox.textContent = res.message;
+          alertBox.classList.remove('hidden');
+        }
+      });
+    }
+
+    function handleVerifyOTP() {
+      const code = document.getElementById('otpCode').value.trim();
+      const alertBox = document.getElementById('otpAlert');
+      const btn = document.getElementById('btnOtp');
+
+      if (!code) {
+        alertBox.textContent = 'يرجى إدخال الرمز الواصل بالتليجرام.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'جاري التحقق...';
+      alertBox.classList.add('hidden');
+
+      callAPI({ action: 'verifyOTP', phone: tempPhone, code: code }, function(res) {
+        btn.disabled = false;
+        btn.textContent = 'تأكيد ودخول لوحة التحكم';
+        if (res.success) {
+          currentUser = res.user;
+          openDashboard();
+        } else {
+          alertBox.textContent = res.message;
+          alertBox.classList.remove('hidden');
+        }
+      });
+    }
+
+    function backToReg() {
+      document.getElementById('otpStep').classList.add('hidden');
+      document.getElementById('registerStep').classList.remove('hidden');
+    }
+
+    function openDashboard() {
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('dashboardSection').classList.remove('hidden');
+      document.getElementById('userNameDisplay').textContent = currentUser ? currentUser.name : 'عبدالعزيز';
+      loadDashboardData();
+    }
+
+    function switchTab(tab) {
+      ['dash', 'accounts', 'vouchers'].forEach(t => {
+        document.getElementById('view-' + t).classList.add('hidden');
+        document.getElementById('nav-' + t).classList.remove('active');
+      });
+
+      document.getElementById('view-' + tab).classList.remove('hidden');
+      document.getElementById('nav-' + tab).classList.add('active');
+
+      if (tab === 'dash') loadDashboardData();
+      if (tab === 'accounts') loadAccounts();
+    }
+
+    function loadDashboardData() {
+      callAPI({ action: 'getDashboard' }, function(res) {
+        if(res.success) {
+          document.getElementById('dashSales').textContent = Number(res.data.totalSales || 0).toFixed(2);
+          document.getElementById('dashInvCount').textContent = res.data.totalInvoices;
+          document.getElementById('dashTxCount').textContent = res.data.totalTransactions;
+        }
+      });
+    }
+
+    function saveAccount() {
+      const code = document.getElementById('accCode').value;
+      const name = document.getElementById('accName').value;
+      const type = document.getElementById('accType').value;
+
+      if(!code || !name) return alert('يرجى كتابة رمز واسم الحساب');
+
+      callAPI({ action: 'addAccount', code: code, name: name, type: type }, function(res) {
+        alert(res.message);
+        loadAccounts();
+      });
+    }
+
+    function loadAccounts() {
+      callAPI({ action: 'getAccounts' }, function(res) {
+        if(res.success) {
+          let html = '';
+          res.data.forEach(a => {
+            html += `<tr><td>${a.code}</td><td>${a.name}</td><td>${a.type}</td><td>${a.balance}</td></tr>`;
+          });
+          document.getElementById('accountsTable').innerHTML = html;
+        }
+      });
+    }
+
+    function saveVoucher() {
+      const type = document.getElementById('vType').value;
+      const account = document.getElementById('vAccount').value;
+      const amount = document.getElementById('vAmount').value;
+      const description = document.getElementById('vDesc').value;
+
+      if(!account || !amount) return alert('يرجى إدخال الحساب والمبلغ');
+
+      callAPI({
+        action: 'saveTransaction',
+        type: type,
+        account: account,
+        amount: amount,
+        description: description,
+        userName: currentUser ? currentUser.name : 'عبدالعزيز'
+      }, function(res) {
+        alert(res.message);
+        document.getElementById('vAccount').value = '';
+        document.getElementById('vAmount').value = '';
+        document.getElementById('vDesc').value = '';
+      });
+    }
+
+    function logout() {
+      document.getElementById('dashboardSection').classList.add('hidden');
+      document.getElementById('authSection').classList.remove('hidden');
+      document.getElementById('otpStep').classList.add('hidden');
+      document.getElementById('registerStep').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
